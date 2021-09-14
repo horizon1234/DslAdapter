@@ -22,6 +22,7 @@ import kotlinx.android.synthetic.main.base_recycler_layout.*
  */
 abstract class BaseRecyclerActivity : AppCompatActivity() {
 
+    /**相当于所有findViewById的缓存*/
     lateinit var dslViewHolder: DslViewHolder
 
     /**提供悬停功能*/
@@ -45,14 +46,16 @@ abstract class BaseRecyclerActivity : AppCompatActivity() {
     }
 
     lateinit var refreshLayout: SwipeRefreshLayout
+    //界面的recyclerView
     lateinit var recyclerView: RecyclerView
 
     open fun initBaseLayout() {
         setSupportActionBar(toolbar)
         dslViewHolder.v<RecyclerView>(R.id.base_recycler_view)?.apply {
             recyclerView = this
-
+            //添加普通的分割线装饰符
             addItemDecoration(baseDslItemDecoration)
+            //悬浮功能
             hoverItemDecoration.attachToRecyclerView(this)
 
             //防止在折叠/展开 即 itemAdd/itemRemove 的时候, 自动滚动到顶部.

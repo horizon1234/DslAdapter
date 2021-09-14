@@ -1,6 +1,8 @@
 package com.angcyo.dsladapter.demo
 
+import android.util.Log
 import com.angcyo.dsladapter.DslAdapterStatusItem
+import com.angcyo.dsladapter.DslViewHolder
 import com.angcyo.dsladapter.demo.R
 
 /**
@@ -10,6 +12,8 @@ import com.angcyo.dsladapter.demo.R
  * @date 2019/10/16
  * Copyright (c) 2019 ShenZhen O&M Cloud Co., Ltd. All rights reserved.
  */
+const val TAG = "zyh"
+
 class AdapterStatusActivity : BaseRecyclerActivity() {
 
     override fun getBaseLayoutId(): Int {
@@ -27,6 +31,20 @@ class AdapterStatusActivity : BaseRecyclerActivity() {
         }
 
         initAdapterStatus()
+
+        dslAdapter.dslAdapterStatusItem.onRefresh = {
+            Log.i(TAG, "onInitBaseLayoutAfter: ")
+            dslViewHolder.postDelay(2000){
+                dslAdapter.setAdapterStatus(DslAdapterStatusItem.ADAPTER_STATUS_NONE)
+                onRefresh()
+            }
+        }
+        dslAdapter.dslAdapterStatusItem.onItemStateChange = {from: Int, to: Int ->  
+            
+        }
+        dslAdapter.dslAdapterStatusItem.onBindStateLayout = { itemHolder: DslViewHolder, state: Int ->  
+            
+        }
     }
 
     private fun initAdapterStatus() {
@@ -43,6 +61,7 @@ class AdapterStatusActivity : BaseRecyclerActivity() {
             dslAdapter.setAdapterStatus(DslAdapterStatusItem.ADAPTER_STATUS_ERROR)
         }
     }
+
 
     override fun onRefresh() {
         super.onRefresh()

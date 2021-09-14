@@ -20,6 +20,7 @@ import kotlin.random.Random
  */
 open class SwipeMenuActivity : BaseRecyclerActivity() {
 
+    //侧滑
     var swipeMenuHelper: SwipeMenuHelper? = null
 
     override fun onInitBaseLayoutAfter() {

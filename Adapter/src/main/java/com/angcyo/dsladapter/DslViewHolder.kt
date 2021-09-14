@@ -21,6 +21,11 @@ import java.lang.ref.WeakReference
  * @date 2019/08/09
  * Copyright (c) 2019 ShenZhen O&M Cloud Co., Ltd. All rights reserved.
  */
+
+/**
+ * 这个东西也是一个设计思路，其实RecyclerView的ViewHolder参数就是itemView即可
+ * 自己的ViewHolder，主要就是拿到layout中的view，不论是数据绑定还是这个
+ * */
 open class DslViewHolder(
     itemView: View,
     initialCapacity: Int = DEFAULT_INITIAL_CAPACITY
@@ -35,6 +40,10 @@ open class DslViewHolder(
     /**
      * findViewById是循环枚举所有子View的, 多少也是消耗性能的, +一个缓存
      */
+
+    /**
+     *
+     * */
     val sparseArray: SparseArray<WeakReference<View?>> = SparseArray(initialCapacity)
 
     /**
