@@ -2,6 +2,7 @@ package com.angcyo.dsladapter
 
 import android.app.Activity
 import android.graphics.*
+import android.util.Log
 import android.view.*
 import android.widget.FrameLayout
 import androidx.recyclerview.widget.GridLayoutManager
@@ -18,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView
  * Copyright (c) 2019 ShenZhen O&M Cloud Co., Ltd. All rights reserved.
  */
 
+
 open class HoverItemDecoration : RecyclerView.ItemDecoration() {
     internal var recyclerView: RecyclerView? = null
     internal var hoverCallback: HoverCallback? = null
@@ -31,7 +33,7 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
 
     val cancelEvent = Runnable {
         overViewHolder?.apply {
-
+            Log.i(TAG, ": 给itemView发送一个UP事件")
             itemView.dispatchTouchEvent(
                 MotionEvent.obtain(
                     nowTime(),
@@ -49,13 +51,16 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
         Paint(Paint.ANTI_ALIAS_FLAG)
     }
 
+    //关于这个addItemTouchListener的用法在前面的侧滑菜单有详细说明
     private val itemTouchListener = object : RecyclerView.SimpleOnItemTouchListener() {
+
         override fun onInterceptTouchEvent(
             recyclerView: RecyclerView,
             event: MotionEvent
         ): Boolean {
             val action = event.actionMasked
             if (action == MotionEvent.ACTION_DOWN) {
+                //Rect就有contains方法
                 isDownInHoverItem = overDecorationRect.contains(event.x.toInt(), event.y.toInt())
             } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
                 isDownInHoverItem = false
@@ -63,19 +68,25 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
 
             if (isDownInHoverItem) {
                 //L.i("onInterceptTouchEvent:$event")
+                Log.i(TAG, "onInterceptTouchEvent: $isDownInHoverItem 拦截Down事件")
                 onTouchEvent(recyclerView, event)
             }
-
+            //当在悬浮item上时，处理触摸事件
             return isDownInHoverItem
         }
 
         override fun onTouchEvent(recyclerView: RecyclerView, event: MotionEvent) {
             //L.w("onTouchEvent:$event")
-
+            Log.i(TAG, "onTouchEvent: eventAction = ${event.actionMasked}")
             if (isDownInHoverItem) {
+                Log.i(TAG, "onTouchEvent: 处理触摸事件在HoverItem上")
+                //down事件在悬浮item上
                 overViewHolder?.apply {
                     if (hoverCallback?.enableDrawableState == true) {
+                        //这里的图片可以点击很奇怪的需求
+                        Log.i(TAG, "onTouchEvent: 激活图片状态")
                         if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                            Log.i(TAG, "onTouchEvent: down之后立马发出up")
                             //有些时候, 可能收不到 up/cancel 事件, 延时发送cancel事件, 解决一些 界面drawable的bug
                             recyclerView.postDelayed(cancelEvent, 160L)
                         } else {
@@ -83,6 +94,7 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
                         }
 
                         //一定要调用dispatchTouchEvent, 否则ViewGroup里面的子View, 不会响应touchEvent
+                        Log.i(TAG, "onTouchEvent: itemView自己分发事件")
                         itemView.dispatchTouchEvent(event)
                         if (itemView is ViewGroup) {
                             if ((itemView as ViewGroup).onInterceptTouchEvent(event)) {
@@ -92,8 +104,10 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
                             itemView.onTouchEvent(event)
                         }
                     } else {
+                        Log.i(TAG, "onTouchEvent: 没有激活drawable点击效果")
                         //没有Drawable状态, 需要手动控制touch事件, 因为系统已经管理不了 itemView了
                         if (event.actionMasked == MotionEvent.ACTION_UP) {
+                            Log.i(TAG, "onTouchEvent: itemView自己处理UP事件")
                             itemView.performClick()
                         }
                     }
@@ -104,11 +118,12 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
 
     private val attachStateChangeListener = object : View.OnAttachStateChangeListener {
         override fun onViewDetachedFromWindow(view: View?) {
+            Log.i(TAG, "onViewDetachedFromWindow: ")
             removeAllHoverView()
         }
 
         override fun onViewAttachedToWindow(view: View?) {
-
+            Log.i(TAG, "onViewAttachedToWindow: ")
         }
     }
 
@@ -117,6 +132,7 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
             super.onScrollStateChanged(recyclerView, newState)
             if (newState == RecyclerView.SCROLL_STATE_IDLE) {
                 //滚动状态结束
+                Log.i(TAG, "onScrollStateChanged: scroll Idle")
                 removeAllHoverView()
             }
         }
@@ -130,7 +146,7 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
     fun attachToRecyclerView(recyclerView: RecyclerView?, init: HoverCallback.() -> Unit = {}) {
         hoverCallback = HoverCallback()
         hoverCallback?.init()
-
+        Log.i(TAG, "attachToRecyclerView: 安装")
         if (this.recyclerView !== recyclerView) {
             if (this.recyclerView != null) {
                 this.destroyCallbacks()
@@ -161,13 +177,21 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
 
     //</editor-fold desc="操作方法">
 
+    /**
+     * 设置callbacks
+     * */
     private fun setupCallbacks() {
         this.recyclerView?.apply {
+            //给recyclerView添加修饰
+            Log.i(TAG, "setupCallbacks: 添加悬浮Item修饰")
             addItemDecoration(this@HoverItemDecoration)
             if (hoverCallback?.enableTouchEvent == true) {
+                //还是老一套，添加ItemTouchListener
                 addOnItemTouchListener(itemTouchListener)
             }
+            //attachState监听
             addOnAttachStateChangeListener(attachStateChangeListener)
+            //滑动监听
             addOnScrollListener(scrollListener)
         }
     }
@@ -215,11 +239,15 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
      *  添加悬浮view 到 Activity, 目的是为了 系统接管 悬浮View的touch事件以及drawable的state
      * */
     private fun addHoverView(view: View) {
+        Log.i(TAG, "addHoverView: overDecorationRect.width() = ${overDecorationRect.width()}")
+        Log.i(TAG, "addHoverView: overDecorationRect.height() = ${overDecorationRect.height()}")
+        Log.i(TAG, "addHoverView: left = ${overDecorationRect.left}")
+        Log.i(TAG, "addHoverView: top = ${overDecorationRect.top}")
         if (view.parent == null) {
             windowContent?.addView(
                 view, 0,
                 FrameLayout.LayoutParams(
-                    overDecorationRect.width(),
+                    overDecorationRect.width()-400,
                     overDecorationRect.height()
                 ).apply {
                     val viewRect = recyclerView?.getViewRect()
@@ -232,7 +260,9 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
     }
 
     override fun onDrawOver(canvas: Canvas, parent: RecyclerView, state: RecyclerView.State) {
+        Log.i(TAG, "onDrawOver: 绘制在Item上的修饰")
         if (state.isPreLayout || state.willRunSimpleAnimations()) {
+            Log.i(TAG, "onDrawOver: 预layout")
             return
         }
 
@@ -240,10 +270,11 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
 
         overViewHolder?.let {
             if (!overDecorationRect.isEmpty) {
-
+                Log.i(TAG, "onDrawOver: 添加悬停的ViewHolder")
                 //L.d("...onDrawOverDecoration...")
                 hoverCallback?.apply {
                     if (enableTouchEvent && enableDrawableState) {
+                        Log.i(TAG, "onDrawOver: 添加悬停View")
                         addHoverView(it.itemView)
                     }
 
@@ -275,14 +306,15 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
      * 核心方法, 用来实时监测界面上 需要浮动的 分割线.
      * */
     internal fun checkOverDecoration(parent: RecyclerView) {
+        Log.i(TAG, "checkOverDecoration: ")
         childViewHolder(parent, 0)?.let { viewHolder ->
             val firstChildAdapterPosition = viewHolder.adapterPosition
-
+            Log.i(TAG, "checkOverDecoration: firstChildAdapterPosition = $firstChildAdapterPosition")
             if (firstChildAdapterPosition != RecyclerView.NO_POSITION) {
 
                 parent.adapter?.let { adapter ->
                     hoverCallback?.let { callback ->
-
+                        //判断第一个显示的adapter是不是要悬停的
                         var firstChildHaveOver =
                             callback.haveOverDecoration.invoke(adapter, firstChildAdapterPosition)
 
@@ -291,28 +323,32 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
 
                         if (!firstChildHaveOver) {
                             //第一个child没有分割线, 查找之前最近有分割线的position
+                            Log.i(TAG, "checkOverDecoration: $firstChildAdapterPosition 位置不需要悬停")
+                            Log.i(TAG, "checkOverDecoration: 查找$firstChildAdapterPosition 位置前的悬停Item")
                             val findOverPrePosition =
                                 findOverPrePosition(adapter, firstChildAdapterPosition)
                             if (findOverPrePosition != RecyclerView.NO_POSITION) {
                                 //找到了最近的分割线
+                                Log.i(TAG, "checkOverDecoration: 在$firstChildAdapterPosition 前找到了悬停Item")
                                 firstChildHaveOver = true
 
                                 firstChildHaveOverPosition = findOverPrePosition
+                                Log.i(TAG, "checkOverDecoration: 需要悬停的item是$firstChildHaveOverPosition")
                             }
                         }
 
                         if (firstChildHaveOver) {
-
+                            Log.i(TAG, "checkOverDecoration: 有悬停Item")
                             val overStartPosition =
                                 findOverStartPosition(adapter, firstChildHaveOverPosition)
-
+                            Log.i(TAG, "checkOverDecoration: 悬停开始的位置 overStartPosition = $overStartPosition")
                             if (overStartPosition == RecyclerView.NO_POSITION) {
                                 clearOverDecoration()
                                 return
                             } else {
                                 firstChildHaveOverPosition = overStartPosition
                             }
-
+                            Log.i(TAG, "checkOverDecoration: 创建第一个位置的child firstChildHaveOverPosition = $firstChildHaveOverPosition")
                             //创建第一个位置的child 需要分割线
                             val firstViewHolder =
                                 callback.createDecorationOverView.invoke(
@@ -320,10 +356,11 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
                                     adapter,
                                     firstChildHaveOverPosition
                                 )
-
+                            Log.i(TAG, "checkOverDecoration: 设置悬浮View")
                             val overView = firstViewHolder.itemView
+                            Log.i(TAG, "checkOverDecoration: tempRect = ${overView.left} ${overView.top} ${overView.right} ${overView.bottom}")
                             tempRect.set(
-                                overView.left,
+                                overView.left + recyclerView!!.paddingLeft,
                                 overView.top,
                                 overView.right,
                                 overView.bottom
@@ -331,6 +368,7 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
 
                             val nextViewHolder =
                                 findNextDecoration(parent, adapter, tempRect.height())
+                            Log.i(TAG, "checkOverDecoration: 查找下一个悬停 nextViewHolder = ${nextViewHolder?.adapterPosition}")
                             if (nextViewHolder != null) {
                                 //紧挨着的下一个child也有分割线, 监测是否需要上推
 
@@ -345,6 +383,7 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
                                     )
                                 ) {
                                     //不同的分割线, 实现上推效果
+                                    Log.i(TAG, "checkOverDecoration: 不同的悬停 需要上推效果")
                                     if (nextViewHolder.itemView.top < tempRect.height()) {
                                         tempRect.offsetTo(
                                             0,
@@ -356,16 +395,18 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
 
                             if (firstChildHaveOverPosition == firstChildAdapterPosition && viewHolder.itemView.top >= 0 /*考虑分割线*/) {
                                 //第一个child, 正好是 分割线的开始位置
+                                Log.i(TAG, "checkOverDecoration: 第一个child就是悬停item")
                                 clearOverDecoration()
                             } else {
                                 if (overAdapterPosition != firstChildHaveOverPosition) {
                                     clearOverDecoration()
-
+                                    Log.i(TAG, "checkOverDecoration: 第一个child不算悬停item")
                                     overViewHolder = firstViewHolder
                                     overDecorationRect.set(tempRect)
-
+                                    Log.i(TAG, "checkOverDecoration: 悬停的位置是 $overAdapterPosition")
                                     overAdapterPosition = firstChildHaveOverPosition
                                 } else if (overDecorationRect != tempRect) {
+                                    Log.i(TAG, "checkOverDecoration: 更新")
                                     overDecorationRect.set(tempRect)
                                 }
                             }
@@ -453,6 +494,7 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
     }
 
     fun clearOverDecoration() {
+        Log.i(TAG, "clearOverDecoration: ")
         overDecorationRect.clear()
         nextDecorationRect.clear()
         removeHoverView()
@@ -511,6 +553,9 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
         return result
     }
 
+    /**
+     * 保存各种信息
+     * */
     class HoverCallback {
 
         /**激活touch手势*/
@@ -535,6 +580,10 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
          * 根据 位置, 返回对应分割线的布局类型, 小于0, 不绘制
          *
          * @see RecyclerView.Adapter.getItemViewType
+         * */
+        /**
+         * 从这里既然是返回adapterPosition可以推测出分割线也是一种子布局，
+         * 这个也符合悬停item的要求
          * */
         var decorationOverLayoutType: (adapter: RecyclerView.Adapter<*>, adapterPosition: Int) -> Int =
             { adapter, adapterPosition ->
@@ -663,7 +712,7 @@ open class HoverItemDecoration : RecyclerView.ItemDecoration() {
             overRect: Rect
         ) -> Unit =
             { canvas, paint, viewHolder, overRect ->
-
+                Log.i(TAG, ": 绘制悬停View")
                 canvas.save()
                 canvas.translate(overRect.left.toFloat(), overRect.top.toFloat())
 

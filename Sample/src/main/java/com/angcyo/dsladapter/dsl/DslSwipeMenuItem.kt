@@ -17,6 +17,13 @@ import com.angcyo.item.base.LibInitProvider
  * @date 2020/05/11
  * Copyright (c) 2020 ShenZhen Wayto Ltd. All rights reserved.
  */
+
+/**
+ * DslItem设计思路是把数据和layout放在一起，都在这个Item中
+ * 把itemLayoutId就是type。
+ * 然后要显示的数据，就直接放在Item中
+ * */
+
 class DslSwipeMenuItem : DslTextInfoItem() {
     init {
         itemLayoutId = R.layout.app_item_swipe_menu
@@ -32,6 +39,7 @@ class DslSwipeMenuItem : DslTextInfoItem() {
 
         itemSwipeMenuType =
             if (itemPosition % 2 == 0) SwipeMenuHelper.SWIPE_MENU_TYPE_DEFAULT else SwipeMenuHelper.SWIPE_MENU_TYPE_FLOWING
+
 
         itemHolder.group(R.id.menu_wrap_layout)?.resetDslItem(
             if (itemPosition % 2 == 0) {
@@ -89,7 +97,12 @@ class DslSwipeMenuItem : DslTextInfoItem() {
         )
 
         itemHolder.click(R.id.lib_content_wrap_layout) {
-            _itemSwipeMenuHelper?.toggleSwipeMenu(itemHolder)
+            //如果这个item的侧滑已经打开则关闭菜单
+            if (_itemSwipeMenuHelper?.isSwiped(itemHolder)!!){
+                _itemSwipeMenuHelper?.closeSwipeMenu(itemHolder)
+            }else{
+                toast("$itemInfoText $itemDarkText")
+            }
         }
     }
 

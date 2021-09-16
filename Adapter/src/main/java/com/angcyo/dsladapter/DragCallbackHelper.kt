@@ -1,7 +1,10 @@
 package com.angcyo.dsladapter
 
 import android.graphics.Canvas
+import android.graphics.Paint
+import android.text.TextPaint
 import android.text.TextUtils
+import android.util.Log
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.angcyo.dsladapter.internal.DrawText
@@ -17,6 +20,8 @@ import java.util.*
  * @date 2019/11/05
  * Copyright (c) 2019 ShenZhen O&M Cloud Co., Ltd. All rights reserved.
  */
+const val TAG = "zyh"
+
 class DragCallbackHelper : ItemTouchHelper.Callback() {
 
     companion object {
@@ -90,12 +95,14 @@ class DragCallbackHelper : ItemTouchHelper.Callback() {
         recyclerView: RecyclerView,
         viewHolder: RecyclerView.ViewHolder
     ): Int {
+        //拿到这个item
         val dslAdapterItem = _dslAdapter?.getItemData(viewHolder.adapterPosition)
         return dslAdapterItem?.run {
             val dFlag =
                 if (itemDragFlag >= 0) itemDragFlag else this@DragCallbackHelper.itemDragFlag
             val sFlag =
                 if (itemSwipeFlag >= 0) itemSwipeFlag else this@DragCallbackHelper.itemSwipeFlag
+            //拿到Item本身配置的滑动方向和拖拽方向
             makeMovementFlags(
                 if (itemDragEnable) dFlag else FLAG_NONE,
                 if (itemSwipeEnable) sFlag else FLAG_NONE
@@ -110,49 +117,34 @@ class DragCallbackHelper : ItemTouchHelper.Callback() {
     ): Boolean {
         val fromPosition = viewHolder.adapterPosition
         val toPosition = target.adapterPosition
-
+        Log.i(TAG, "onMove: fromPos = $fromPosition  toPos = $toPosition")
         //如果[viewHolder]已经移动到[target]位置, 则返回[true]
         return _dslAdapter?.run {
-
             val validFilterDataList = getValidFilterDataList()
             val fromItem = validFilterDataList.getOrNull(fromPosition)
             val toItem = validFilterDataList.getOrNull(toPosition)
-
             if (fromItem == null || toItem == null) {
                 //异常操作
                 false
             } else {
                 val fromPair = getItemListPairByItem(fromItem)
                 val toPair = getItemListPairByItem(toItem)
-
-                //[fromPosition]所在的数据集合
                 val fromList: MutableList<DslAdapterItem>? = fromPair.first
-
-                //[toPosition]所在的数据集合
                 val toList: MutableList<DslAdapterItem>? = toPair.first
-
                 if (fromList.isNullOrEmpty() && toList.isNullOrEmpty()) {
                     false
                 } else {
-                    //交换数据
                     Collections.swap(validFilterDataList, fromPosition, toPosition) //界面上的集合
-
                     if (fromList == toList) {
-                        //在同一个数据集合中
                         Collections.swap(fromList, fromPair.second, toPair.second) //数据池的集合
                     } else {
-                        //不同列表中数据交换
                         val temp = fromList!![fromPair.second]
                         fromList[fromPair.second] = toList!![toPair.second]
                         toList[toPair.second] = temp
                     }
-
-                    //更新数据列表
                     _updateAdapterItems()
-                    //交换界面
                     notifyItemMoved(fromPosition, toPosition)
                     _dragHappened = true
-
                     onItemMoveChanged?.invoke(fromList!!, toList!!, fromPair.second, toPair.second)
                     true
                 }
@@ -161,6 +153,7 @@ class DragCallbackHelper : ItemTouchHelper.Callback() {
     }
 
     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+        Log.i(TAG, "onSwiped: direction = $direction")
         _swipeHappened = true
         _dslAdapter?.apply {
             getItemData(viewHolder.adapterPosition)?.apply {
@@ -188,6 +181,8 @@ class DragCallbackHelper : ItemTouchHelper.Callback() {
     ): Boolean {
         val currentItem = _dslAdapter?.getItemData(current.adapterPosition)
         val targetItem = _dslAdapter?.getItemData(target.adapterPosition)
+        
+        Log.i(TAG, "canDropOver: currentItem = ${current.adapterPosition} targetItem = ${target.adapterPosition}" )
 
         if (currentItem != null && targetItem != null) {
             return targetItem.isItemCanDropOver(currentItem)
@@ -214,6 +209,7 @@ class DragCallbackHelper : ItemTouchHelper.Callback() {
 
     override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
         super.onSelectedChanged(viewHolder, actionState)
+        Log.i(TAG, "onSelectedChanged: actionState = $actionState")
         onSelectedChanged.invoke(viewHolder, actionState)
 
         if (viewHolder != null) {
@@ -247,7 +243,7 @@ class DragCallbackHelper : ItemTouchHelper.Callback() {
         isCurrentlyActive: Boolean
     ) {
         super.onChildDraw(canvas, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
-
+        Log.i(TAG, "onChildDraw: dX = $dX dY = $dY")
         //绘制滑动删除提示
         if (enableSwipeTip && isCurrentlyActive && actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
 
@@ -263,13 +259,20 @@ class DragCallbackHelper : ItemTouchHelper.Callback() {
 
             val y: Float =
                 itemView.top + itemView.measuredHeight / 2 - _drawText._paint.textHeight() / 2
-
-            canvas.save()
-            canvas.translate(x, y)
-            _drawText.drawText = swipeTipText
-            _drawText.onDraw(canvas)
-            canvas.restore()
+            Log.i(TAG, "onChildDraw: x = $x y = $y")
+            Log.i(TAG, "onChildDraw: canvas = height ${canvas.height} width ${canvas.width}")
+//            canvas.save()
+//            canvas.translate(x, y)
+////            _drawText.drawText = swipeTipText
+////            _drawText.onDraw(canvas)
+//            canvas.drawText(swipeTipText.toString(),0f,0f,_paint)
+//            canvas.restore()
+            canvas.drawText(swipeTipText.toString(),x,y,_paint)
         }
+    }
+
+    var _paint: TextPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+        textSize = 40f
     }
 
     override fun onChildDrawOver(
@@ -290,6 +293,7 @@ class DragCallbackHelper : ItemTouchHelper.Callback() {
             actionState,
             isCurrentlyActive
         )
+        Log.i(TAG, "onChildDrawOver: ")
     }
 
     /**[android.view.MotionEvent.ACTION_UP]时, 动画需要执行的时长*/

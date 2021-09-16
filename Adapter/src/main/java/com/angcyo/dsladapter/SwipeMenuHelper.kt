@@ -570,6 +570,10 @@ class SwipeMenuHelper(var swipeMenuCallback: SwipeMenuCallback) : ItemDecoration
         }
     }
 
+    fun isSwiped(viewHolder: RecyclerView.ViewHolder): Boolean{
+        return _swipeMenuViewHolder == viewHolder
+    }
+
     fun openSwipeMenu(viewHolder: RecyclerView.ViewHolder) {
         if (_swipeMenuViewHolder != null && _swipeMenuViewHolder != viewHolder) {
             closeSwipeMenu()

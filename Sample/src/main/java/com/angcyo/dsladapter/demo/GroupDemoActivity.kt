@@ -28,7 +28,7 @@ class GroupDemoActivity : BaseRecyclerActivity() {
                 for (i in 0..Random.nextInt(2, 6)) {
                     dslItem(R.layout.item_group_head) {
                         itemIsGroupHead = true //启动分组折叠
-                        itemIsHover = false //关闭悬停
+                        itemIsHover = true //关闭悬停
                         itemGroups = mutableListOf("group${i + 1}")
                         itemTopInsert = 10 * dpi
 
